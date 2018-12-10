@@ -40,14 +40,15 @@ env:
     # This will force to use local repo content, instead of the Boost's default
     # not needed because process is not yet in boost.
     - BOOST_REMOVE=process
+    - CXX_STANDARD=gnu++11
   matrix:
-    - BADGE=linux CXX_STANDARD=gnu++11
-    - BADGE=osx   CXX_STANDARD=gnu++11
-    - exclude:
-      - os: linux
-        env: BADGE=osx
-      - os: osx
-        env: BADGE=linux
+    - BADGE=linux
+    - BADGE=osx
+  exclude:
+    - os: linux
+      env: BADGE=osx
+    - os: osx
+      env: BADGE=linux
 
 
 # Installing additional tools
