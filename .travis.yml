@@ -43,12 +43,11 @@ env:
   matrix:
     - BADGE=linux CXX_STANDARD=gnu++11
     - BADGE=osx   CXX_STANDARD=gnu++11
-
-exclude:
-  - os: linux
-    env: BADGE=osx
-  - os: osx
-    env: BADGE=linux
+    - exclude:
+      - os: linux
+        env: BADGE=osx
+      - os: osx
+        env: BADGE=linux
 
 
 # Installing additional tools
