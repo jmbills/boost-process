@@ -41,10 +41,8 @@ env:
     # not needed because process is not yet in boost.
     - BOOST_REMOVE=process
   matrix:
-    - BADGE=linux
-    - BADGE=osx
-    - CXX_STANDARD=gnu++11
-    #- CXX_STANDARD=gnu++1y
+    - BADGE=linux CXX_STANDARD=gnu++11
+    - BADGE=osx   CXX_STANDARD=gnu++11
   exclude:
     - os: linux
       env: BADGE=osx
