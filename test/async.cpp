@@ -106,25 +106,27 @@ BOOST_AUTO_TEST_CASE(async_wait_sync_wait, *boost::unit_test::timeout(3))
     boost::asio::deadline_timer timeout{io_context, boost::posix_time::seconds(5)};
     timeout.async_wait([&](boost::system::error_code ec){if (!ec) io_context.stop();});
 
-    bp::child c1(
-        master_test_suite().argv[1],
-        "test", "--exit-code", "1",
-        ec
-    );
+    bp::child c1;
+    io_context.post([&]{
+            c1 = bp::child(master_test_suite().argv[1],
+                           "test", "--exit-code", "1", ec);
+        });
     BOOST_REQUIRE(!ec);
 
-    bp::child c2(
-        master_test_suite().argv[1],
-        "test", "--exit-code", "2", "--wait", "1",
-        ec,
-        io_context,
-        bp::on_exit([&](int exit, const std::error_code& ec_in)
-                {
-                    exit_code = exit; exit_called=true;
-                    BOOST_CHECK(!ec_in);
-                    timeout.cancel();
-                })
-    );
+    bp::child c2;
+
+    io_context.post(
+            [&]{c2 = bp::child(master_test_suite().argv[1],
+                               "test", "--exit-code", "2", "--wait", "1",
+                               ec, io_context,
+                        bp::on_exit([&](int exit, const std::error_code& ec_in)
+                        {
+                            exit_code = exit; exit_called=true;
+                            BOOST_CHECK(!ec_in);
+                            timeout.cancel();
+                        })
+                    );
+            });
     BOOST_REQUIRE(!ec);
 
     io_context.run();
@@ -215,21 +217,26 @@ BOOST_AUTO_TEST_CASE(async_wait_abort, *boost::unit_test::timeout(5))
 
     bool exit_called = false;
     int exit_code = 0;
-    bp::child c(
-        master_test_suite().argv[1],
-        "test", "--abort",
-        ec,
-        io_context,
-        bp::on_exit([&](int exit, const std::error_code& ec_in)
-                {
-                    BOOST_CHECK(!exit_called);
-                    exit_code = exit;
-                    exit_called=true;
-                    BOOST_TEST_MESSAGE(ec_in.message());
-                    BOOST_CHECK(!ec_in);
-                    timeout.cancel();
-                })
-    );
+
+    bp::child c;
+
+    io_context.post([&]{
+        c = bp::child(
+                master_test_suite().argv[1],
+                "test", "--abort",
+                ec,
+                io_context,
+                bp::on_exit([&](int exit, const std::error_code& ec_in)
+                            {
+                                BOOST_CHECK(!exit_called);
+                                exit_code = exit;
+                                exit_called=true;
+                                BOOST_TEST_MESSAGE(ec_in.message());
+                                BOOST_CHECK(!ec_in);
+                                timeout.cancel();
+                            })
+                );
+            });
     BOOST_REQUIRE(!ec);
 
     io_context.run();
@@ -249,15 +256,20 @@ BOOST_AUTO_TEST_CASE(async_future, *boost::unit_test::timeout(2))
 
     std::error_code ec;
     std::future<int> fut;
-    bp::child c(
-        master_test_suite().argv[1],
-        "test", "--exit-code", "42",
-        ec,
-        io_context,
-        bp::on_exit=fut
-    );
+    bp::child c;
 
-    BOOST_REQUIRE(!ec);
+    io_context.post([&]
+                    {
+                        c = bp::child(
+                                master_test_suite().argv[1],
+                                "test", "--exit-code", "42",
+                                ec,
+                                io_context,
+                                bp::on_exit=fut
+                        );
+                    });
+
+        BOOST_REQUIRE(!ec);
 
     boost::asio::deadline_timer timeout{io_context, boost::posix_time::seconds(1)};
     timeout.async_wait([&](boost::system::error_code ec){if (!ec) io_context.stop();});
@@ -282,11 +294,14 @@ BOOST_AUTO_TEST_CASE(async_out_stream, *boost::unit_test::timeout(5))
     boost::asio::deadline_timer timeout{io_context, boost::posix_time::seconds(2)};
     timeout.async_wait([&](boost::system::error_code ec){if (!ec) io_context.stop();});
 
-    bp::child c(master_test_suite().argv[1],
-                "test", "--echo-stdout", "abc",
-                bp::std_out > buf,
-                io_context,
-                ec);
+    bp::child c;
+
+    io_context.post([&]{
+        c = bp::child(master_test_suite().argv[1],
+                     "test", "--echo-stdout", "abc",
+                     bp::std_out > buf,
+                     io_context, ec);
+        });
     BOOST_REQUIRE(!ec);
 
     io_context.run();
@@ -308,8 +323,6 @@ BOOST_AUTO_TEST_CASE(async_in_stream, *boost::unit_test::timeout(5))
     using boost::unit_test::framework::master_test_suite;
 
     boost::asio::io_context io_context;
-
-
     std::error_code ec;
 
     boost::asio::streambuf buf;
@@ -321,15 +334,16 @@ BOOST_AUTO_TEST_CASE(async_in_stream, *boost::unit_test::timeout(5))
 
     boost::asio::deadline_timer timeout{io_context, boost::posix_time::seconds(2)};
     timeout.async_wait([&](boost::system::error_code ec){if (!ec) io_context.stop();});
-
-    bp::child c(
-        master_test_suite().argv[1],
-        "test", "--prefix-once", "test",
-        bp::std_in  < in_buf,
-        bp::std_out > buf,
-        io_context,
-        ec
-    );
+    bp::child c;
+    io_context.post([&]
+        {
+            c = bp::child(master_test_suite().argv[1],
+                          "test", "--prefix-once", "test",
+                          bp::std_in  < in_buf,
+                          bp::std_out > buf,
+                          io_context,
+                          ec);
+        });
     BOOST_REQUIRE(!ec);
 
     io_context.run();
@@ -358,15 +372,18 @@ BOOST_AUTO_TEST_CASE(async_error, *boost::unit_test::timeout(2))
 
     bool exit_called = false;
     std::error_code ec;
-    bp::child c(
-        "doesn't exist",
-        ec,
-        io_context,
-        bp::on_exit([&](int exit, const std::error_code& ec_in)
-                {
-                    exit_called=true;
-                })
-    );
+    bp::child c;
+
+    io_context.post([&]
+        { c = bp::child(
+                "doesn't exist",
+                ec,
+                io_context,
+                bp::on_exit([&](int exit, const std::error_code& ec_in)
+                        {
+                            exit_called=true;
+                        })
+            );});
 
     BOOST_REQUIRE(ec);
 
