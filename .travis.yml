@@ -24,31 +24,34 @@ os:
     - osx
 
 env:
-  global:
-    # Autodetect Boost branch by using the following code: - BRANCH_TO_TEST=$TRAVIS_BRANCH
-    # or just directly specify it
-    - BRANCH_TO_TEST=$TRAVIS_BRANCH
+  - BADGE=linux
+  - BADGE=osx
 
-    # Files, which coverage results must be ignored (files from other projects).
-    # Example: - IGNORE_COVERAGE='*/boost/progress.hpp */filesystem/src/*'
-    - IGNORE_COVERAGE=''
+global:
+  # Autodetect Boost branch by using the following code: - BRANCH_TO_TEST=$TRAVIS_BRANCH
+  # or just directly specify it
+  - BRANCH_TO_TEST=$TRAVIS_BRANCH
 
-    # Explicitly remove the following library from Boost. This may be usefull, if you're for example running Travis
-    # from `Boost.DLL` repo, while Boost already has `dll`.
-    #
-    # By default is eaual to - BOOST_REMOVE=`basename $TRAVIS_BUILD_DIR`
-    # This will force to use local repo content, instead of the Boost's default
-    # not needed because process is not yet in boost.
-    - BOOST_REMOVE=process
-    - CXX_STANDARD=gnu++11
-  matrix:
-    - BADGE=linux
-    - BADGE=osx
-  include:
+  # Files, which coverage results must be ignored (files from other projects).
+  # Example: - IGNORE_COVERAGE='*/boost/progress.hpp */filesystem/src/*'
+  - IGNORE_COVERAGE=''
+
+  # Explicitly remove the following library from Boost. This may be usefull, if you're for example running Travis
+  # from `Boost.DLL` repo, while Boost already has `dll`.
+  #
+  # By default is eaual to - BOOST_REMOVE=`basename $TRAVIS_BUILD_DIR`
+  # This will force to use local repo content, instead of the Boost's default
+  # not needed because process is not yet in boost.
+  - BOOST_REMOVE=process
+  - CXX_STANDARD=gnu++11
+
+matrix:
+  exclude:
     - os: linux
       env: BADGE=linux
     - os: osx
       env: BADGE=osx
+
 
 
 # Installing additional tools
@@ -73,6 +76,7 @@ before_install:
     - BOOST=$HOME/boost-local
     - git init $BOOST
     - cd $BOOST
+    - echo Branch to test  $BRANCH_TO_TEST
     - if [ $BRANCH_TO_TEST = "master" ]; then
       BOOST_BRANCH=master; 
       else BOOST_BRANCH=develop; fi
