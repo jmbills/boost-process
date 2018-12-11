@@ -112,11 +112,12 @@ inline bool wait_until(
     else if (timeout_pid == 0)
     {
         auto ts = get_timespec(time_out - Clock::now());
-        ::timespec rem;
-        ::nanosleep(&ts, &rem);
-        while (rem.tv_sec > 0 || rem.tv_nsec > 0)
-            ::nanosleep(&rem, &rem);
-        ::exit(0);
+        std::string arg = std::to_string(ts.tv_sec) + '.';
+        std::string nsec = std::to_string(ts.tv_nsec);
+        arg.resize(arg.size() + 9 - nsec.size(), 0);
+        arg += nsec;
+        char * const args[] = {arg.data() ,nullptr};
+        ::execv("/bin/sleep", );
     }
 
     struct child_cleaner_t
