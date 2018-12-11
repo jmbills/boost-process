@@ -80,7 +80,7 @@ inline bool wait_until(
     }
 
     bool timed_out;
-#if !defined(BOOST_POSIX_HAS_SIGTIMEDWAIT)
+#if defined(BOOST_POSIX_HAS_SIGTIMEDWAIT)
     do
     {
         auto ts = get_timespec(time_out - Clock::now());
