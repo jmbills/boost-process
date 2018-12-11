@@ -80,7 +80,7 @@ inline bool wait_until(
     }
 
     bool timed_out;
-#if defined(BOOST_POSIX_HAS_SIGTIMEDWAIT)
+#if !defined(BOOST_POSIX_HAS_SIGTIMEDWAIT)
     do
     {
         auto ts = get_timespec(time_out - Clock::now());
@@ -116,8 +116,8 @@ inline bool wait_until(
         std::string nsec = std::to_string(ts.tv_nsec);
         arg.resize(arg.size() + 9 - nsec.size(), 0);
         arg += nsec;
-        char * const args[] = {arg.data() ,nullptr};
-        ::execv("/bin/sleep", );
+        char * const args[] = {&*arg.begin() ,nullptr};
+        ::execv("/bin/sleep", args);
     }
 
     struct child_cleaner_t
